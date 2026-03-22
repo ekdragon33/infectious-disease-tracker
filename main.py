@@ -1,23 +1,35 @@
 import pandas as pd
 import requests
+import matplotlib.pyplot as plt
 
-print("🦠 Infectious Disease Tracker")
-print("=" * 40)
+print("Fetching data...")
 
-url = "https://disease.sh/v3/covid-19/countries?sort=cases&limit=20"
+url = "https://disease.sh/v3/covid-19/countries"
 response = requests.get(url)
-data = response.json()
+df = pd.DataFrame(response.json())
+df = df[['country', 'cases', 'deaths', 'active']]
+df['death_rate'] = (df['deaths'].astype(float) / df['cases'].astype(float) * 100).round(2)
 
-df = pd.DataFrame(data)
-df = df[['country', 'cases', 'deaths', 'recovered', 'active']]
+# Manually take top 15 by cases
+top15 = df.sort_values('cases', ascending=False).head(15)
+top15 = top15.sort_values('cases', ascending=True)  # flip so biggest is on top
 
-# Calculate death rate
-df['death_rate'] = (df['deaths'].astype(float) /
-                    df['cases'].astype(float) * 100).round(2)
+# Chart 1: Top 15 by cases
+plt.figure(figsize=(10, 8))
+plt.barh(top15['country'], top15['cases'], color='steelblue')
+plt.title('Top 15 Countries by Total Cases')
+plt.xlabel('Total Cases')
+plt.tight_layout()
+plt.savefig('cases_chart.png')
+plt.show()
 
-print(f"\nTop 20 Countries — Death Rate Analysis\n")
-print(df.to_string(index=False))
+# Chart 2: Death rates for same countries
+plt.figure(figsize=(10, 8))
+plt.barh(top15['country'], top15['death_rate'], color='crimson')
+plt.title('Death Rate by Country (%)')
+plt.xlabel('Death Rate %')
+plt.tight_layout()
+plt.savefig('death_rate_chart.png')
+plt.show()
 
-print(f"\nTotal cases tracked: {df['cases'].sum():,}")
-print(f"Total deaths tracked: {df['deaths'].sum():,}")
-print(f"Average death rate: {df['death_rate'].mean():.2f}%")
+print("Done!")
